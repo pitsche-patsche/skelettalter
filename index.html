@@ -88,7 +88,8 @@
   }
   .actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   #cameraBtn { display: none; }
-  @media (pointer: coarse) { #cameraBtn { display: block; } #drop .hint-desktop { display: none; } }
+  .sub-touch { display: none; }
+  @media (pointer: coarse) { #cameraBtn { display: block; } #drop { display: none; } .actions { margin-top: 0; } .sub-desktop { display: none; } .sub-touch { display: inline; } }
 
   #scanBtn {
     width: 100%; margin-top: 8px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer;
@@ -195,7 +196,7 @@
 <body>
 <main>
   <h1>Skelettalter</h1>
-  <p class="sub">Röntgenbild der Hand hineinziehen, Geschlecht wählen – fertig.</p>
+  <p class="sub"><span class="sub-desktop">Röntgenbild der Hand hineinziehen, Geschlecht wählen – fertig.</span><span class="sub-touch">Röntgenbild der Hand fotografieren oder auswählen, Geschlecht wählen – fertig.</span></p>
   <p id="offlineStatus" class="offline-status" hidden></p>
 
   <div class="card">
@@ -597,7 +598,6 @@
   });
 
   const drop = $("drop");
-  if (matchMedia("(pointer: coarse)").matches) drop.querySelector("strong").textContent = "Hier tippen, um ein Bild zu wählen";
   drop.onclick = () => $("fileInput").click();
   drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("fileInput").click(); } };
   $("pickBtn").onclick = () => $("fileInput").click();

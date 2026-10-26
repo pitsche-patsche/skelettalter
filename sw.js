@@ -1,7 +1,7 @@
 // Service Worker der Offline-App. Wird von scripts/build_web.py mit Version und Dateiliste befüllt.
 // Die kleinen Programmdateien liegen in IndexedDB (nicht im Cache-Speicher), damit andere Apps unter derselben
 // Adresse sie nicht versehentlich löschen. Die großen Dateien (Modell, Laufzeit) verwaltet die Seite selbst (store.js).
-const VERSION = "5f86231683d3";
+const VERSION = "fb9cc5175075";
 const SHELL = ["assets.json", "data.json", "growth.js", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "index.html", "info.html", "manifest.webmanifest", "offline.js", "ort-wasm-simd-threaded.js", "ort.wasm.min.js", "preprocess.js", "selftest.js", "selftest.json", "store.js"];
 const DB_NAME = "skelettalter";
 const STORE = "files";
