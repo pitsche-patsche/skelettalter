@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Skelettalter</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script>window.OFFLINE_APP = true;</script>
+<script src="ort.wasm.min.js"></script>
+<script type="module" src="offline.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Skelettalter">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #d2d2d7;
+    --accent: #0a6cff;
+    --accent-soft: #e8f1ff;
+    --error: #c62828;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111113;
+      --card: #1c1c1f;
+      --text: #f5f5f7;
+      --muted: #98989f;
+      --line: #3a3a3f;
+      --accent: #4c9aff;
+      --accent-soft: #16263d;
+      --error: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px calc(48px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button {
+    padding: 12px; font: inherit; font-weight: 600;
+    background: transparent; color: var(--text);
+    border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+  #drop {
+    border: 2px dashed var(--line);
+    border-radius: 16px;
+    padding: 36px 16px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  #drop strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 4px; }
+  #drop.over strong { color: var(--accent); }
+  #preview { display: none; width: 100%; max-height: 360px; object-fit: contain; border-radius: 12px; background: #000; margin-top: 14px; }
+
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .actions button {
+    flex: 1; padding: 12px; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: 12px; border: 1.5px solid var(--line); background: transparent; color: var(--text);
+  }
+  .actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #cameraBtn { display: none; }
+  @media (pointer: coarse) { #cameraBtn { display: block; } #drop .hint-desktop { display: none; } }
+
+  #scanBtn {
+    width: 100%; margin-top: 8px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: 12px; border: 1.5px solid var(--line); background: transparent; color: var(--text);
+  }
+  .scan-hint { display: none; font-size: 13px; color: var(--muted); margin: 8px 2px 0; }
+  .scan-hint.visible { display: block; }
+  @media (pointer: coarse) { #scanBtn, .scan-hint { display: none; } }
+
+  #previewFallback { color: var(--muted); font-size: 14px; margin-top: 10px; }
+
+  #result { display: none; text-align: center; }
+  #result .big { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; margin: 4px 0; }
+  #result .months { color: var(--muted); }
+  #result .range { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  #status { text-align: center; color: var(--muted); display: none; }
+  #error { display: none; color: var(--error); text-align: center; font-weight: 600; }
+  .spinner {
+    width: 22px; height: 22px; border: 3px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  :root { --accent2: #d9480f; --accent3: #2b8a3e; }
+  @media (prefers-color-scheme: dark) { :root { --accent2: #ff922b; --accent3: #51cf66; } }
+
+  .help { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .fields label { display: block; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .fields input {
+    display: block; width: 100%; min-width: 0; margin-top: 4px; padding: 10px 12px; font: inherit; font-size: 16px;
+    color: var(--text); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px;
+  }
+  .fields input:focus { outline: none; border-color: var(--accent); }
+  .fields small { display: block; font-weight: 400; margin-top: 2px; }
+  .field-wide { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field-wide select {
+    display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font: inherit; font-size: 16px;
+    color: var(--text); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px;
+  }
+  details.parents { margin-top: 12px; }
+  details.parents summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent); }
+  details.parents .fields { margin-top: 10px; }
+  #growthBtn {
+    width: 100%; margin-top: 16px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: 12px; border: 1.5px solid var(--accent); background: var(--accent); color: #fff;
+  }
+  #growthError { display: none; color: var(--error); font-weight: 600; margin-top: 12px; }
+  #growthResult { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .est { text-align: center; }
+  .est .lead { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .est .value { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; }
+  .est .span { color: var(--muted); font-size: 14px; }
+  table.facts { width: 100%; border-collapse: collapse; margin: 16px 0 8px; font-size: 15px; }
+  table.facts th, table.facts td { padding: 8px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+  table.facts th { font-weight: 400; color: var(--muted); padding-right: 12px; width: 52%; }
+  table.facts td { font-weight: 600; text-align: right; }
+  table.facts td small { display: block; font-weight: 400; color: var(--muted); }
+  ul.notes { margin: 12px 0 0; padding-left: 20px; font-size: 14px; }
+  ul.notes li { margin-bottom: 6px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 20px 0 4px; }
+  svg.chart { display: block; width: 100%; max-width: 520px; margin: 0 auto; height: auto; }
+  svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+  svg.chart .tick, svg.chart .axis, svg.chart .ptag { fill: var(--muted); font-size: 11px; }
+  svg.chart .axis { text-anchor: middle; }
+  svg.chart .pc { fill: none; stroke: var(--muted); stroke-width: 1; opacity: .75; }
+  svg.chart .pc.med { stroke-width: 2; opacity: 1; }
+  svg.chart .trk1 { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  svg.chart .trk2 { fill: none; stroke: var(--accent2); stroke-width: 2.5; stroke-dasharray: 6 4; }
+  svg.chart .shift { stroke: var(--accent2); stroke-width: 1.5; stroke-dasharray: 2 3; }
+  svg.chart .pt1 { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+  svg.chart .pt2 { fill: var(--card); stroke: var(--accent2); stroke-width: 3; }
+  svg.chart .krmk { fill: var(--accent3); stroke: var(--card); stroke-width: 1.5; }
+  svg.chart .tgt { stroke: var(--text); stroke-width: 2; }
+  svg.chart .tgtd { fill: var(--text); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: center; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 0; border-top: 3px solid var(--accent); margin-right: 6px; vertical-align: middle; }
+  .legend .l2::before { border-top: 3px dashed var(--accent2); }
+  .legend .l3::before { border-top: 3px solid var(--text); }
+  .legend .l4::before { border-top: 3px solid var(--accent3); }
+  .small { font-size: 13px; color: var(--muted); }
+
+  .offline-status { font-size: 13px; color: var(--muted); margin: -16px 0 20px; }
+  .offline-status.ready { color: var(--accent3); }
+  #selftestOut { white-space: pre-wrap; word-break: break-word; font-size: 12px; margin: 0 0 12px; }
+  #selftestCopy { width: 100%; padding: 10px; font: inherit; font-weight: 600; border-radius: 12px; border: 1.5px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+  #installCard { display: none; }
+  #installCard p { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  #installCard ol { margin: 0; padding-left: 20px; font-size: 15px; }
+  #installCard li { margin-bottom: 4px; }
+  .share-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; }
+
+  .phone { display: flex; gap: 16px; align-items: center; }
+  .phone svg { width: 110px; height: 110px; flex: none; background: #fff; border-radius: 8px; padding: 4px; }
+  .phone p { margin: 0; font-size: 14px; color: var(--muted); }
+  .phone code { color: var(--text); font-size: 14px; word-break: break-all; }
+  @media (pointer: coarse) { #phoneCard { display: none; } }
+
+  .disclaimer { font-size: 13px; color: var(--muted); text-align: center; margin-top: 24px; }
+  a { color: var(--accent); }
+  #quit { background: none; border: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Skelettalter</h1>
+  <p class="sub">Röntgenbild der Hand hineinziehen, Geschlecht wählen – fertig.</p>
+  <p id="offlineStatus" class="offline-status" hidden></p>
+
+  <div class="card">
+    <p class="label">1 · Geschlecht</p>
+    <div class="seg" role="group" aria-label="Geschlecht">
+      <button type="button" id="sexFemale" aria-pressed="false">Mädchen</button>
+      <button type="button" id="sexMale" aria-pressed="false">Junge</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="label">2 · Röntgenbild</p>
+    <div id="drop" tabindex="0" role="button" aria-label="Bild auswählen oder hineinziehen">
+      <strong>Bild hier hineinziehen</strong>
+      <span class="hint-desktop">oder klicken, um eine Datei zu wählen<br>oder einen Screenshot mit ⌘V einfügen</span>
+    </div>
+    <div class="actions">
+      <button type="button" id="cameraBtn" class="primary">Foto aufnehmen</button>
+      <button type="button" id="pickBtn">Aus Fotos / Dateien wählen</button>
+    </div>
+    <button type="button" id="scanBtn">📷 Mit iPhone/iPad scannen</button>
+    <p class="scan-hint" id="scanHint">Im folgenden Dialog rechtsklicken (oder auf <em>Optionen</em>/das Kamera-Symbol) → <strong>„Von iPhone oder iPad importieren"</strong> → <strong>„Dokumente scannen"</strong>. iPhone/iPad müssen entsperrt und per WLAN/Bluetooth in der Nähe sein.</p>
+    <img id="preview" alt="Vorschau">
+    <p id="previewFallback" hidden>Bild ausgewählt (Vorschau in diesem Browser nicht möglich) – Auswertung läuft trotzdem.</p>
+    <input type="file" id="fileInput" accept="image/*,.heic,.heif" hidden>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+    <input type="file" id="scanInput" accept="image/*,.heic,.heif" hidden>
+  </div>
+
+  <div class="card" id="status"><span class="spinner"></span>Skelettalter wird bestimmt …</div>
+  <div class="card" id="error"></div>
+  <div class="card" id="result">
+    <p class="label">Geschätztes Skelettalter</p>
+    <div class="big" id="years"></div>
+    <div class="months" id="months"></div>
+    <div class="range"><span id="range"></span> <a href="/info" target="_blank" rel="noopener">Worauf basieren die Zahlen?</a></div>
+  </div>
+
+  <div class="card" id="growthCard">
+    <p class="label">3 · Endgröße abschätzen (optional)</p>
+    <p class="help">Rechnet aus Skelettalter, Größe und Gewicht eine ungefähre Endgröße hoch. Das Skelettalter wird aus dem Röntgenbild übernommen, du kannst es aber auch selbst eintragen. Eingaben werden nicht gespeichert.</p>
+    <div class="fields">
+      <label>Geburtsdatum<input type="date" id="birth"></label>
+      <label>Messdatum<input type="date" id="measured"></label>
+      <label>Körpergröße (cm)<input type="number" id="height" inputmode="decimal" step="0.1" min="60" max="230"></label>
+      <label>Gewicht (kg)<input type="number" id="weight" inputmode="decimal" step="0.1" min="5" max="250"></label>
+      <label>Skelettalter (Jahre)<input type="number" id="boneAge" inputmode="decimal" step="0.1" min="0" max="25"><small id="boneAgeHint">optional</small></label>
+    </div>
+    <label class="field-wide">Referenz für die Wachstumskurven
+      <select id="reference">
+        <option value="kiggs" selected>Deutschland (KiGGS 2003–2006)</option>
+        <option value="cdc">USA (CDC 2000)</option>
+      </select>
+    </label>
+    <details class="parents">
+      <summary>Größe der Eltern (optional, für Zielgröße und Khamis-Roche)</summary>
+      <div class="fields">
+        <label>Vater (cm)<input type="number" id="father" inputmode="decimal" step="0.5" min="120" max="230"></label>
+        <label>Mutter (cm)<input type="number" id="mother" inputmode="decimal" step="0.5" min="120" max="230"></label>
+      </div>
+    </details>
+    <button type="button" id="growthBtn">Endgröße berechnen</button>
+    <div id="growthError"></div>
+
+    <div id="growthResult">
+      <div class="est">
+        <div class="lead" id="estLead"></div>
+        <div class="value" id="estValue"></div>
+        <div class="span" id="estSpan"></div>
+        <div class="span" id="estSpread"></div>
+      </div>
+      <table class="facts" id="facts"></table>
+      <ul class="notes" id="growthNotes"></ul>
+      <p class="chart-title">Größe nach Alter</p>
+      <svg class="chart" id="heightChart" role="img" aria-label="Wachstumsdiagramm Körpergröße"></svg>
+      <div class="legend" id="heightLegend"></div>
+      <p class="chart-title" id="weightTitle">Gewicht nach Alter</p>
+      <svg class="chart" id="weightChart" role="img" aria-label="Wachstumsdiagramm Gewicht"></svg>
+      <p class="small" style="margin-top:16px">
+        Wachstumskurven: <span id="refNote"></span>.
+        Die Hochrechnungen nach Lebens- und Skelettalter sind Faustregeln und nicht klinisch validiert. Khamis-Roche ist ein veröffentlichtes Verfahren für weiße US-Kinder von 4 bis 17,5 Jahren. Keine Grundlage für Behandlungsentscheidungen.
+        Das Gewicht geht nur bei Khamis-Roche in die Zahl ein, sonst dient es der Einordnung (BMI).
+        <a href="/info#endgroesse" target="_blank" rel="noopener">Wie wird das berechnet?</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="card" id="installCard">
+    <p class="label">Als App auf dem iPhone</p>
+    <p>So bekommst du ein eigenes Symbol auf dem Home-Bildschirm:</p>
+    <ol>
+      <li>Unten auf das Teilen-Symbol tippen
+        <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M5 11v9h14v-9"/></svg></li>
+      <li>„Zum Home-Bildschirm" wählen</li>
+      <li>„Hinzufügen" tippen</li>
+    </ol>
+    <p id="installNote" style="margin-top:10px">Der Mac muss eingeschaltet sein, das Programm laufen und das iPhone im selben WLAN sein.</p>
+  </div>
+
+  <div class="card" id="phoneCard" hidden>
+    <p class="label">Auf dem Handy nutzen</p>
+    <div class="phone">
+      <div id="qr"></div>
+      <p>Handy und Mac im selben WLAN: QR-Code mit der Kamera scannen oder diese Adresse im Browser öffnen:<br><code id="url"></code><br><span class="small">Falls das nicht klappt: <code id="ipurl"></code></span></p>
+    </div>
+  </div>
+
+  <div class="card" id="selftestCard" hidden>
+    <p class="label">Selbsttest</p>
+    <pre id="selftestOut"></pre>
+    <button type="button" id="selftestCopy">Ergebnis kopieren</button>
+  </div>
+
+  <p class="disclaimer">
+    Lern- und Forschungsprojekt, kein Medizinprodukt. Die Schätzung ersetzt keine ärztliche Beurteilung.
+    Das Modell wurde mit digitalen Röntgenbildern der linken Hand trainiert; bei abfotografierten Aufnahmen ist die Genauigkeit geringer.
+    <span id="privacyNote">Bilder werden nicht gespeichert.</span>
+    <a id="selftestLink" href="?selftest" hidden>Selbsttest</a>
+    <a href="/info" target="_blank" rel="noopener">Worauf die Zahlen basieren und wie genau sie sind</a>
+  </p>
+  <div style="text-align:center"><button id="quit">Programm beenden</button></div>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // Rechenaufrufe: im Mac-Programm über den Server, in der Offline-App über window.skelettalterApi (offline.js).
+  const serverApi = {
+    async predict(file, sex) {
+      const body = new FormData();
+      body.append("image", file);
+      body.append("sex", sex);
+      const response = await fetch("/api/predict", { method: "POST", body });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unbekannter Fehler");
+      return data.months;
+    },
+    async growth(body) {
+      const response = await fetch("/api/growth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unbekannter Fehler");
+      return data;
+    },
+    async curves(sex, reference) {
+      const response = await fetch(`/api/growth/curves?sex=${sex}&reference=${reference}`);
+      if (!response.ok) throw new Error("Wachstumskurven konnten nicht geladen werden.");
+      return response.json();
+    },
+  };
+  const api = () => window.skelettalterApi || serverApi;
+  const OFFLINE = window.OFFLINE_APP === true;
+
+  let sex = null, file = null, requestId = 0, growthShown = false;
+  const curvesBySex = {};
+
+  function setSex(value) {
+    sex = value;
+    $("sexMale").setAttribute("aria-pressed", value === "male");
+    $("sexFemale").setAttribute("aria-pressed", value === "female");
+    maybeRun();
+    if (growthShown) calcGrowth();
+  }
+  $("sexMale").onclick = () => setSex("male");
+  $("sexFemale").onclick = () => setSex("female");
+
+  function setFile(f) {
+    if (!f) return;
+    file = f;
+    const preview = $("preview");
+    const fallback = $("previewFallback");
+    fallback.hidden = true;
+    preview.onerror = () => { preview.style.display = "none"; fallback.hidden = false; };
+    preview.src = URL.createObjectURL(f);
+    preview.style.display = "block";
+    if (!matchMedia("(pointer: coarse)").matches) $("drop").querySelector("strong").textContent = "Anderes Bild hineinziehen";
+    maybeRun();
+  }
+
+  function show(which) {
+    for (const id of ["status", "error", "result"]) $(id).style.display = id === which ? "block" : "none";
+  }
+
+  async function maybeRun() {
+    if (!file) return;
+    if (!sex) {
+      show("error");
+      $("error").textContent = "Bitte oben das Geschlecht wählen.";
+      return;
+    }
+    const myRequest = ++requestId;
+    show("status");
+    try {
+      const months = await api().predict(file, sex);
+      if (myRequest !== requestId) return;
+      showResult(months);
+    } catch (err) {
+      if (myRequest !== requestId) return;
+      show("error");
+      $("error").textContent = err.message;
+    }
+  }
+
+  function showResult(months) {
+    const total = Math.max(0, Math.round(months));
+    const y = Math.floor(total / 12), m = total % 12;
+    $("years").textContent = `${y} Jahre${m ? ` ${m} Monate` : ""}`;
+    $("months").textContent = `${total} Monate (${(months / 12).toFixed(1).replace(".", ",")} Jahre)`;
+    $("range").textContent = "Typische Abweichung: im Test lagen 80 % der Schätzungen innerhalb von ±12 Monaten, im Mittel ±8 Monate.";
+    show("result");
+    $("boneAge").value = (months / 12).toFixed(1);
+    $("boneAgeHint").textContent = "aus dem Röntgenbild übernommen, änderbar";
+    if (growthShown) calcGrowth();
+  }
+
+  const fmt = (n, d = 0) => Number(n).toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const perc = (p) => (p < 1 ? "unter der 1. Perzentile" : p > 99 ? "über der 99. Perzentile" : `${Math.round(p)}. Perzentile`);
+  const num = (id) => ($(id).value === "" ? null : Number($(id).value));
+
+  $("measured").value = new Date().toLocaleDateString("sv-SE");
+  $("birth").max = $("measured").value;
+
+  function growthFail(message) {
+    $("growthError").textContent = message;
+    $("growthError").style.display = message ? "block" : "none";
+  }
+
+  async function loadCurves(s, reference) {
+    const key = `${reference}:${s}`;
+    if (!curvesBySex[key]) {
+      curvesBySex[key] = await api().curves(s, reference);
+    }
+    return curvesBySex[key];
+  }
+
+  async function calcGrowth() {
+    growthFail("");
+    if (!sex) return growthFail("Bitte oben das Geschlecht wählen.");
+    const birth = $("birth").value, measured = $("measured").value;
+    if (!birth || !measured) return growthFail("Bitte Geburtsdatum und Messdatum angeben.");
+    const ageMonths = (Date.parse(measured) - Date.parse(birth)) / 86400000 / 30.4375;
+    if (!(ageMonths > 0)) return growthFail("Das Messdatum muss nach dem Geburtsdatum liegen.");
+    const height = num("height");
+    if (height === null) return growthFail("Bitte die Körpergröße eingeben.");
+    const boneYears = num("boneAge");
+    const body = {
+      sex, age_months: ageMonths, height_cm: height, weight_kg: num("weight"),
+      bone_age_months: boneYears === null ? null : boneYears * 12,
+      father_cm: num("father"), mother_cm: num("mother"), reference: $("reference").value,
+    };
+    try {
+      const [data, curves] = await Promise.all([api().growth(body), loadCurves(sex, body.reference)]);
+      renderGrowth(data, curves, { ageMonths, height, weight: body.weight_kg });
+    } catch (err) {
+      $("growthResult").style.display = "none";
+      growthShown = false;
+      growthFail(err.message);
+    }
+  }
+
+  function renderGrowth(r, curves, input) {
+    const ba = r.by_bone_age, kr = r.khamis_roche;
+    const adultAge = r.reference.adult_age_years;
+    $("estLead").textContent = ba ? "Prognose Endgröße (nach Skelettalter)" : "Prognose Endgröße (nach Lebensalter)";
+    $("estValue").textContent = `≈ ${fmt(ba ? ba.adult_cm : r.adult_by_percentile_cm)} cm`;
+    $("estSpan").textContent = ba
+      ? `Spanne ${fmt(ba.low_cm)}–${fmt(ba.high_cm)} cm, falls das Skelettalter um ±8 Monate abweicht`
+      : "unterstellt eine durchschnittliche Reifung";
+    const estimates = [ba && ba.adult_cm, r.adult_by_percentile_cm, kr && kr.adult_cm].filter((v) => v);
+    $("estSpread").textContent = estimates.length > 1
+      ? `Die Verfahren kommen auf ${fmt(Math.min(...estimates))} bis ${fmt(Math.max(...estimates))} cm. Je weiter sie auseinanderliegen, desto unsicherer die Prognose.`
+      : "";
+    $("refNote").textContent = r.reference.label;
+
+    const rows = [];
+    if (ba) rows.push(["Hochrechnung nach Skelettalter", `${fmt(ba.adult_cm)} cm`, `Spanne ${fmt(ba.low_cm)}–${fmt(ba.high_cm)} cm`]);
+    rows.push(["Hochrechnung nach Lebensalter", `${fmt(r.adult_by_percentile_cm)} cm`, `folgt der aktuellen Perzentile bis ${fmt(adultAge)} Jahre`]);
+    if (kr) rows.push(["Khamis-Roche (mit Gewicht)", `${fmt(kr.adult_cm)} cm`, "nutzt Größe, Gewicht und Elterngröße, ohne Skelettalter"]);
+    if (r.target) rows.push(["Zielgröße aus Elterngröße", `${fmt(r.target.mid_parental_cm)} cm`, `üblicher Streubereich ${fmt(r.target.low_cm)}–${fmt(r.target.high_cm)} cm`]);
+    rows.push(["Größe für das Lebensalter", perc(r.height_percentile), `${fmt(input.height, 1)} cm`]);
+    if (ba) rows.push(["Größe für das Skelettalter", perc(ba.height_percentile_at_bone_age), `Skelettalter ${fmt(ba.bone_age_years, 1)} Jahre`]);
+    if (r.weight) {
+      rows.push(["Gewicht", perc(r.weight.percentile), `${fmt(input.weight, 1)} kg`]);
+      rows.push(["BMI", `${fmt(r.weight.bmi, 1)} kg/m²`, `${perc(r.weight.bmi_percentile)}, ${r.weight.category}`]);
+    }
+    const facts = $("facts");
+    facts.replaceChildren();
+    for (const [label, value, sub] of rows) {
+      const tr = facts.insertRow();
+      const th = document.createElement("th");
+      th.textContent = label;
+      tr.appendChild(th);
+      const td = tr.insertCell();
+      td.textContent = value;
+      if (sub) {
+        const small = document.createElement("small");
+        small.textContent = sub;
+        td.appendChild(small);
+      }
+    }
+
+    $("growthNotes").replaceChildren(...r.notes.map((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      return li;
+    }));
+
+    const ageYears = input.ageMonths / 12;
+    const paths = [{ cls: "trk1", pts: r.track_chrono }];
+    const points = [{ cls: "pt1", x: ageYears, y: input.height }];
+    const lines = [];
+    const marks = [];
+    const extraY = [input.height, r.adult_by_percentile_cm];
+    const legend = [["", "Hochrechnung nach Lebensalter"]];
+    if (ba) {
+      paths.push({ cls: "trk2", pts: ba.track });
+      points.push({ cls: "pt2", x: ba.plot_age_years, y: input.height });
+      lines.push({ x1: ageYears, x2: ba.plot_age_years, y: input.height });
+      extraY.push(ba.low_cm, ba.high_cm);
+      legend.push(["l2", "Hochrechnung nach Skelettalter (offener Punkt = Größe beim Skelettalter)"]);
+    }
+    if (kr) {
+      marks.push({ x: adultAge - 1.3, y: kr.adult_cm });
+      extraY.push(kr.adult_cm);
+      legend.push(["l4", "Khamis-Roche (mit Gewicht)"]);
+    }
+    let target = null;
+    if (r.target) {
+      target = { low: r.target.low_cm, mid: r.target.mid_parental_cm, high: r.target.high_cm };
+      extraY.push(target.low, target.high);
+      legend.push(["l3", "Zielgröße der Eltern mit Streubereich"]);
+    }
+    drawChart($("heightChart"), { curves: curves.stature, adultAge, step: 10, yLabel: "Größe (cm)", paths, points, lines, marks, target, extraY });
+    $("heightLegend").replaceChildren(...legend.map(([cls, text]) => {
+      const span = document.createElement("span");
+      span.className = cls;
+      span.textContent = text;
+      return span;
+    }));
+
+    const hasWeight = r.weight !== null;
+    $("weightTitle").hidden = !hasWeight;
+    $("weightChart").style.display = hasWeight ? "block" : "none";
+    if (hasWeight) {
+      drawChart($("weightChart"), { curves: curves.weight, adultAge, step: 10, yLabel: "Gewicht (kg)", paths: [], points: [{ cls: "pt1", x: ageYears, y: input.weight }], lines: [], marks: [], target: null, extraY: [input.weight] });
+    }
+
+    $("growthResult").style.display = "block";
+    growthShown = true;
+  }
+
+  function drawChart(svg, cfg) {
+    const W = 420, H = 340, m = { l: 52, r: 30, t: 12, b: 34 };
+    let lo = Infinity, hi = -Infinity;
+    for (const pts of Object.values(cfg.curves)) for (const [, v] of pts) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    for (const v of cfg.extraY) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    lo = Math.floor(lo / cfg.step) * cfg.step;
+    hi = Math.ceil(hi / cfg.step) * cfg.step;
+    const x1 = cfg.adultAge;
+    const X = (a) => m.l + ((a - 2) / (x1 - 2)) * (W - m.l - m.r);
+    const Y = (v) => H - m.b - ((v - lo) / (hi - lo)) * (H - m.t - m.b);
+    const d = (pts) => pts.map(([a, v], i) => `${i ? "L" : "M"}${X(a).toFixed(1)} ${Y(v).toFixed(1)}`).join("");
+    let s = "";
+    for (let v = lo; v <= hi; v += cfg.step) {
+      s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tick" x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+    }
+    for (let a = 2; a <= x1; a += 2) {
+      s += `<line class="grid" x1="${X(a)}" x2="${X(a)}" y1="${m.t}" y2="${H - m.b}"/><text class="tick" x="${X(a)}" y="${H - m.b + 16}" text-anchor="middle">${a}</text>`;
+    }
+    const keys = Object.keys(cfg.curves);
+    const labelled = [keys[0], "25", "50", "75", keys[keys.length - 1]];
+    for (const [p, pts] of Object.entries(cfg.curves)) {
+      s += `<path class="pc${p === "50" ? " med" : ""}" d="${d(pts)}"/>`;
+      if (labelled.includes(p)) {
+        const [a, v] = pts[pts.length - 1];
+        s += `<text class="ptag" x="${X(a) + 4}" y="${Y(v) + 4}">${p}</text>`;
+      }
+    }
+    for (const path of cfg.paths) s += `<path class="${path.cls}" d="${d(path.pts)}"/>`;
+    for (const l of cfg.lines) s += `<line class="shift" x1="${X(l.x1)}" x2="${X(l.x2)}" y1="${Y(l.y)}" y2="${Y(l.y)}"/>`;
+    for (const mk of cfg.marks) s += `<rect class="krmk" x="${X(mk.x) - 5}" y="${Y(mk.y) - 5}" width="10" height="10"/>`;
+    if (cfg.target) {
+      const t = cfg.target, x = X(x1 - 0.7);
+      s += `<line class="tgt" x1="${x}" x2="${x}" y1="${Y(t.low)}" y2="${Y(t.high)}"/>`;
+      s += `<line class="tgt" x1="${x - 4}" x2="${x + 4}" y1="${Y(t.low)}" y2="${Y(t.low)}"/><line class="tgt" x1="${x - 4}" x2="${x + 4}" y1="${Y(t.high)}" y2="${Y(t.high)}"/>`;
+      s += `<path class="tgtd" d="M${x} ${Y(t.mid) - 6}L${x + 6} ${Y(t.mid)}L${x} ${Y(t.mid) + 6}L${x - 6} ${Y(t.mid)}Z"/>`;
+    }
+    for (const p of cfg.points) s += `<circle class="${p.cls}" cx="${X(p.x)}" cy="${Y(p.y)}" r="6"/>`;
+    s += `<text class="axis" x="${(m.l + W - m.r) / 2}" y="${H - 4}">Alter (Jahre)</text>`;
+    s += `<text class="axis" transform="rotate(-90)" x="${-(m.t + (H - m.t - m.b) / 2)}" y="12">${cfg.yLabel}</text>`;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.innerHTML = s;
+  }
+
+  $("growthBtn").onclick = calcGrowth;
+  $("growthCard").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") calcGrowth(); });
+  $("growthCard").addEventListener("change", () => { if (growthShown) calcGrowth(); });
+  $("boneAge").addEventListener("input", () => {
+    $("boneAgeHint").textContent = $("boneAge").value === "" ? "optional" : "manuell eingetragen";
+  });
+
+  const drop = $("drop");
+  if (matchMedia("(pointer: coarse)").matches) drop.querySelector("strong").textContent = "Hier tippen, um ein Bild zu wählen";
+  drop.onclick = () => $("fileInput").click();
+  drop.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("fileInput").click(); } };
+  $("pickBtn").onclick = () => $("fileInput").click();
+  $("cameraBtn").onclick = () => $("cameraInput").click();
+  $("scanBtn").onclick = () => { $("scanHint").classList.add("visible"); $("scanInput").click(); };
+  $("fileInput").onchange = (e) => setFile(e.target.files[0]);
+  $("cameraInput").onchange = (e) => setFile(e.target.files[0]);
+  $("scanInput").onchange = (e) => setFile(e.target.files[0]);
+
+  for (const name of ["dragenter", "dragover"]) document.addEventListener(name, (e) => { e.preventDefault(); drop.classList.add("over"); });
+  for (const name of ["dragleave", "drop"]) document.addEventListener(name, (e) => { e.preventDefault(); drop.classList.remove("over"); });
+  document.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+
+  document.addEventListener("paste", (e) => {
+    const items = [...(e.clipboardData?.items || [])];
+    const item = items.find((i) => i.kind === "file" && i.type.startsWith("image/"));
+    const pasted = item ? item.getAsFile() : e.clipboardData?.files[0];
+    if (!pasted || !pasted.type.startsWith("image/")) return;
+    e.preventDefault();
+    setFile(pasted);
+  });
+
+  if (OFFLINE) {
+    document.querySelectorAll('a[href^="/info"]').forEach((a) => a.setAttribute("href", a.getAttribute("href").replace("/info", "info.html")));
+    $("installNote").textContent = "Danach läuft die App auch ohne Internet und ohne Mac. Beim ersten Öffnen wird das Modell einmalig geladen (ca. 65 MB, am besten im WLAN).";
+    $("privacyNote").textContent = "Die Berechnung läuft auf diesem Gerät, Bilder verlassen es nicht.";
+    $("selftestLink").hidden = false;
+  } else {
+    fetch("/api/info").then((r) => r.json()).then((info) => {
+      $("qr").innerHTML = info.qr;
+      $("url").textContent = info.url;
+      $("ipurl").textContent = info.ip_url;
+      $("phoneCard").hidden = false;
+    }).catch(() => {});
+  }
+
+  function showInstallHint(userAgent, standalone, touch) {
+    return /iPhone|iPad|iPod/.test(userAgent) && !standalone && touch;
+  }
+  if (showInstallHint(navigator.userAgent, navigator.standalone === true, matchMedia("(pointer: coarse)").matches)) {
+    $("installCard").style.display = "block";
+  }
+
+  if (!OFFLINE && ["localhost", "127.0.0.1"].includes(location.hostname)) {
+    $("quit").style.display = "inline";
+    $("quit").onclick = async () => {
+      await fetch("/api/quit", { method: "POST" }).catch(() => {});
+      document.body.innerHTML = '<main><h1>Beendet</h1><p class="sub">Das Programm wurde beendet. Du kannst dieses Fenster schließen.</p></main>';
+    };
+  }
+</script>
+</body>
+</html>

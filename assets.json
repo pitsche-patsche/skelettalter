@@ -1,0 +1,15 @@
+{
+ "version": "5f86231683d3",
+ "big": [
+  {
+   "name": "model.onnx",
+   "size": 49105527,
+   "sha256": "532181bd9f83a386297fdd6e322a5902e0ef89e7f411327ab3842673c1a06cea"
+  },
+  {
+   "name": "ort-wasm-simd-threaded.wasm",
+   "size": 14239897,
+   "sha256": "3398c10d07d229bd91b364548e130e0e51a8e5704b88c7c083ebbeb78842dee2"
+  }
+ ]
+}

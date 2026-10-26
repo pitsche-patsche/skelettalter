@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wie genau ist das? – Skelettalter</title>
+<style>
+  :root { --bg:#f5f5f7; --text:#1d1d1f; --muted:#6e6e73; --line:#d2d2d7; --card:#fff; --accent:#0a6cff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111113; --text:#f5f5f7; --muted:#98989f; --line:#3a3a3f; --card:#1c1c1f; --accent:#4c9aff; } }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px 56px; }
+  a { color:var(--accent); }
+  h1 { font-size:26px; letter-spacing:-0.02em; margin:16px 0; }
+  h2 { font-size:20px; margin:32px 0 8px; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:15px; background:var(--card); }
+  th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  code { font-size:14px; background:var(--card); border:1px solid var(--line); border-radius:4px; padding:1px 4px; }
+  .table-wrap { overflow-x:auto; }
+</style></head>
+<body><main><a href="./">&larr; Zurück zur App</a><h1>Skelettalter: Worauf die Zahlen basieren und wie genau sie sind</h1>
+<h2>Kurzfassung</h2>
+<p>Das Programm schätzt aus einem Röntgenbild der Hand und dem Geschlecht das
+<strong>Skelettalter</strong>. Im Test auf 1.261 Bildern, die das Modell nie gesehen hatte, lag die
+Schätzung im Mittel <strong>7,8 Monate</strong> (rund 0,65 Jahre) neben dem Referenzwert, und <strong>80 %</strong>
+der Schätzungen lagen <strong>innerhalb von ±12 Monaten</strong>.</p>
+<p>Das ist ein Lern- und Forschungsprojekt. Es ist <strong>kein Medizinprodukt</strong> und ersetzt keine
+ärztliche Beurteilung.</p>
+<h2>Woher kommen die Zahlen?</h2>
+<p>Ein neuronales Netz (ResNet50) wurde mit dem öffentlichen <strong>RSNA Pediatric Bone Age
+Datensatz</strong> trainiert: 12.611 Handröntgenbilder von Kindern und Jugendlichen. Zu jedem
+Bild steht das von Radiologen bestimmte Skelettalter (in Monaten) und das Geschlecht dabei.</p>
+<p>Man kann es sich vorstellen wie einen Schüler, dem man zehntausende Karteikarten
+„Bild → richtiges Alter" zeigt. Nach jedem Bild korrigiert er sich ein Stück. Am Ende hat er
+selbstständig gelernt, welche Muster im Bild auf welches Alter hindeuten. Regeln wie in
+der klinischen Methode (siehe unten) wurden ihm nicht beigebracht.</p>
+<p>Wichtig zu verstehen: Das Modell ist nur so „richtig" wie die Referenzwerte, aus denen es
+gelernt hat. Es bildet die Einschätzung der Radiologen im RSNA-Datensatz nach. Einen
+objektiven, messbaren „wahren" Wert gibt es beim Skelettalter nicht.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Angabe</th>
+<th>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trainingsdaten</td>
+<td>RSNA Bone Age, 12.611 Bilder (ca. 11.350 zum Lernen, 1.261 zum Testen)</td>
+</tr>
+<tr>
+<td>Bildart</td>
+<td>digitale Röntgenbilder, überwiegend linke Hand</td>
+</tr>
+<tr>
+<td>Netz</td>
+<td>ResNet50, Bildgröße 500 × 500, Geschlecht als Zusatzeingabe</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>30 Durchläufe (Epochen), ca. 11 Stunden auf einem Mac (Apple-GPU)</td>
+</tr>
+<tr>
+<td>Ausgabe</td>
+<td>Skelettalter in Monaten</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Wie genau ist es? (unsere Messung)</h2>
+<p>Geprüft wurde an <strong>1.261 Bildern, die nicht zum Lernen benutzt wurden</strong>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kennzahl</th>
+<th>Ergebnis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mittlere Abweichung</td>
+<td><strong>7,75 Monate</strong></td>
+</tr>
+<tr>
+<td>Mittlere Abweichung nach Vorzeichen (Verzerrung)</td>
+<td>+0,15 Monate (praktisch keine)</td>
+</tr>
+<tr>
+<td>Typische Abweichung (Median, die Hälfte liegt darunter)</td>
+<td>6,2 Monate</td>
+</tr>
+<tr>
+<td>90 % aller Schätzungen liegen unter</td>
+<td>16 Monaten Abweichung</td>
+</tr>
+<tr>
+<td>Innerhalb von ±12 Monaten</td>
+<td><strong>80,2 %</strong> der Bilder</td>
+</tr>
+</tbody>
+</table></div>
+<p>Nach Gruppen:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Gruppe</th>
+<th>Mittlere Abweichung</th>
+<th>Anzahl Bilder</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mädchen</td>
+<td>7,95 Monate</td>
+<td>560</td>
+</tr>
+<tr>
+<td>Jungen</td>
+<td>7,59 Monate</td>
+<td>701</td>
+</tr>
+<tr>
+<td>0–5 Jahre</td>
+<td>6,9 Monate</td>
+<td>89</td>
+</tr>
+<tr>
+<td>5–10 Jahre</td>
+<td>8,8 Monate</td>
+<td>355</td>
+</tr>
+<tr>
+<td>10–13 Jahre</td>
+<td>7,6 Monate</td>
+<td>546</td>
+</tr>
+<tr>
+<td>13–21 Jahre</td>
+<td>6,9 Monate</td>
+<td>271</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Was das im Alltag heißt:</strong> Bei einem Kind mit einem Referenz-Skelettalter von 12 Jahren
+liegt die Schätzung meist zwischen etwa 11 Jahren 3 Monaten und 12 Jahren 9 Monaten. In etwa
+jedem fünften Fall ist die Abweichung größer als ein Jahr, in Einzelfällen deutlich (im Test
+zum Beispiel 21 Monate).</p>
+<p><strong>Einschränkungen dieser Zahlen:</strong></p>
+<ul>
+<li>Aus den 1.261 Testbildern wurde auch der beste Trainingsstand ausgewählt. Die Werte sind
+  dadurch minimal zu optimistisch. Ein zweiter, komplett unberührter Testsatz mit bekannten
+  Altersangaben stand nicht zur Verfügung (die offiziellen RSNA-Testbilder enthalten keine
+  Referenzwerte).</li>
+<li>Die Zahlen gelten für <strong>digitale Röntgenbilder wie im RSNA-Datensatz</strong>. Für <strong>abfotografierte
+  Bilder</strong> (Handykamera, Leuchtkasten, Bildschirm) haben wir die Genauigkeit <strong>nicht gemessen</strong>.
+  Sie dürfte dort schlechter sein.</li>
+<li>Getestet wurde nur an diesem einen Datensatz. Andere Geräte, Kliniken, Bevölkerungsgruppen
+  oder rechte Hände können abweichen.</li>
+</ul>
+<h2>Einordnung: Wie gut ist das im Vergleich?</h2>
+<p>Skelettalter ist keine physikalisch messbare Größe. „Genauigkeit" heißt in der Praxis:
+Wie stark weichen wiederholte Einschätzungen voneinander ab?</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Verfahren</th>
+<th>Typische Abweichung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zwei Radiologen mit der klinischen TW3/RUS-Methode</td>
+<td>ca. 4–7 Monate zueinander</td>
+</tr>
+<tr>
+<td>Kommerzielle Systeme, die TW3/RUS nachbilden (z. B. BoneXpert)</td>
+<td>ca. 3–5 Monate zur menschlichen Einschätzung</td>
+</tr>
+<tr>
+<td>Beste veröffentlichte Netze auf dem RSNA-Datensatz</td>
+<td>ca. 4–6 Monate</td>
+</tr>
+<tr>
+<td><strong>Dieses Programm</strong></td>
+<td><strong>7,75 Monate</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Unser Modell ist damit <strong>etwas ungenauer als gute Fachsysteme und als die Streuung zwischen
+zwei Radiologen</strong>. Es liegt in einer ähnlichen Größenordnung, ist aber kein Ersatz. Mit
+längerem Training, besserer Bildvorverarbeitung und stärkerem Netz ließe sich die
+Abweichung voraussichtlich auf 6–7 Monate senken.</p>
+<p>Der Vorteil eines automatischen Systems ist die <strong>Konsistenz</strong>: Dasselbe Bild liefert immer
+dieselbe Antwort. Der Nachteil dieses Ansatzes: Er liefert nur eine Zahl, keine
+nachvollziehbare Begründung pro Knochen.</p>
+<h2>Warum nicht die klinische RUS-Methode?</h2>
+<p>Die <strong>TW3/RUS-Methode</strong> bewertet jede einzelne Wachstumszone (Speiche, Elle, bestimmte
+Finger- und Mittelhandknochen) nach einem festen Stufenschema und rechnet die Stufen über
+Tabellen zum Skelettalter um. Für eine automatische Umsetzung fehlen öffentlich verfügbare
+Trainingsdaten, denn die Reifestufen pro Knochen sind fast nie öffentlich annotiert. Deshalb
+schätzt dieses Programm das Alter direkt aus dem Gesamtbild, ohne Zwischenschritt über
+einzelne Knochen. Das ist <strong>nicht</strong> die RUS-Methode, und die Ergebnisse sind nicht nach
+deren Regeln nachvollziehbar.</p>
+<h2 id="endgroesse">Endgrößen-Prognose</h2>
+<p>Optionales Zusatzwerkzeug in der App: Aus Lebensalter, Größe, Gewicht, Skelettalter (automatisch
+aus dem Röntgenbild oder von Hand eingetragen) und optional der Größe der Eltern wird eine
+ungefähre Endgröße abgeschätzt. Die App zeigt <strong>mehrere Verfahren nebeneinander</strong>. Wie weit sie
+auseinanderliegen, ist ein Maß für die Unsicherheit.</p>
+<p><strong>Wachstumskurven (Referenz):</strong> Zur Wahl stehen</p>
+<ul>
+<li><strong>Deutschland (KiGGS 2003–2006)</strong>, voreingestellt: die Referenzperzentile des Robert
+  Koch-Instituts für Größe, Gewicht und BMI von 2 bis 18 Jahren
+  (<a href="https://edoc.rki.de/handle/176904/3254">Neuhauser et al. 2013</a>). Als „erwachsen" gilt hier
+  die Kurve bei 18 Jahren.</li>
+<li><strong>USA (CDC 2000)</strong>: die Kurven der US-Gesundheitsbehörde von 2 bis 20 Jahren, wie im bekannten
+  <a href="https://www.cdc.gov/growthcharts/">CDC-Wachstumsdiagramm</a>.</li>
+</ul>
+<p>Beide Tabellensätze liegen im Projekt (<code>data/reference/</code>). Beim Import wurde geprüft, dass sie
+vollständig sind und sich die Perzentile aus den LMS-Werten nachrechnen lassen (Abweichung
+höchstens 0,06 %, nur Rundung). Die Mediane stimmen mit der Quelle überein (KiGGS mit 18 Jahren:
+179,0 cm Jungen und 165,8 cm Mädchen; CDC mit 20 Jahren: 176,8 und 163,3 cm).</p>
+<p><strong>Was berechnet wird:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Verfahren</th>
+<th>Wie</th>
+<th>Nutzt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hochrechnung nach Lebensalter</td>
+<td>Die Perzentile der aktuellen Größe wird unverändert bis zum Erwachsenenalter der Referenz fortgeschrieben, wie beim Ablesen im Wachstumsdiagramm. Das unterstellt eine durchschnittliche Reifung. Faustregel.</td>
+<td>Größe, Lebensalter</td>
+</tr>
+<tr>
+<td>Hochrechnung nach Skelettalter</td>
+<td>Die Größe wird nicht beim Lebensalter, sondern beim Skelettalter in die Kurve eingetragen und von dort fortgeschrieben. Ein vorausgeeiltes Skelettalter ergibt eine niedrigere Perzentile und damit eine kleinere Endgröße, ein verzögertes das Gegenteil. Die Spanne entsteht, indem das Skelettalter um ±8 Monate verschoben wird, das ist die mittlere Abweichung unseres Modells. Faustregel.</td>
+<td>Größe, Skelettalter</td>
+</tr>
+<tr>
+<td>Khamis-Roche</td>
+<td>Veröffentlichte Regressionsformel (<a href="https://pubmed.ncbi.nlm.nih.gov/7936860/">Khamis und Roche 1994</a>): Endgröße = Konstante + a · Größe + b · Gewicht + c · mittlere Elterngröße, mit Koeffizienten je Geschlecht und Halbjahresalter, dazwischen interpoliert. Gilt für 4 bis 17,5 Jahre und wurde an weißen US-Kindern ohne wachstumsverändernde Erkrankungen entwickelt. Braucht kein Skelettalter.</td>
+<td>Größe, Gewicht, Elterngröße</td>
+</tr>
+<tr>
+<td>Zielgröße aus Elterngröße</td>
+<td>Nach Tanner mittlere Elterngröße plus 6,5 cm (Jungen) bzw. minus 6,5 cm (Mädchen), also (Vater + Mutter ± 13 cm) ÷ 2. Der Streubereich von ±8,5 cm entspricht etwa zwei Standardabweichungen. Eine Orientierung, keine Vorhersage: Kinder sehr großer oder kleiner Eltern liegen im Mittel näher am Durchschnitt (Regression zur Mitte).</td>
+<td>Elterngröße</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Gewicht:</strong> Bei Khamis-Roche geht das Gewicht direkt in die Zahl ein. Bei den anderen
+Verfahren dient es der Einordnung (Perzentile, BMI nach der gewählten Referenz) und löst
+Hinweise aus. Die Entwickler des BoneXpert-Verfahrens fanden, dass ein höherer BMI bei Jungen
+vor der Pubertät mit einer niedrigeren Endgröße einhergeht (etwa 1,5 cm je BMI-Standardabweichung,
+bei Mädchen weniger als 0,5 cm). In unabhängigen Überprüfungen brachte eine Korrektur dafür aber
+keine verlässliche Verbesserung, und sie raten davon ab, den BMI in die Prognose aufzunehmen
+(<a href="https://bonexpert.com/wp-content/uploads/2020/01/Paper12-Growth-Ver7nice.pdf">Thodberg et al. 2009</a>,
+Abschnitt 5.2). Deshalb wird dieser Effekt nicht eingerechnet, die App weist nur darauf hin.</p>
+<p><strong>Wie die Khamis-Roche-Koeffizienten geprüft wurden:</strong> Sie stammen nicht aus dem Originalpapier,
+das nicht frei zugänglich ist, sondern aus zwei voneinander unabhängigen Online-Rechnern. Alle
+224 Koeffizienten (4 je Geschlecht und Alter, 28 Altersstufen) stimmen überein. Ein dritter
+Datensatz (R-Paket matuR) stimmt bei Konstante, Größe und Elterngröße überein, hat beim Gewicht
+aber durchgehend Fehler um den Faktor 10 und wurde deshalb nicht verwendet. Als Plausibilitätstest
+liefert die Formel für ein Durchschnittskind (Medianwerte der CDC-Kurven, Eltern mit
+Median-Erwachsenengröße) in jedem Alter von 4 bis 17,5 Jahren eine Endgröße innerhalb von 2,3 cm
+um den Median-Erwachsenen. <strong>Nicht geprüft</strong> ist der Vergleich mit dem Originalpapier und dem
+Erratum von 1995.</p>
+<p><strong>Grenzen:</strong></p>
+<ul>
+<li>Die Hochrechnungen nach Lebens- und Skelettalter sind <strong>Faustregeln und nicht an echten
+  Verläufen geprüft</strong> (Kinder, deren spätere Endgröße bekannt ist). Sie setzen die etablierten
+  Verfahren Bayley-Pinneau, Roche-Wainer-Thissen und Tanner-Whitehouse nicht um. Deren Tabellen
+  konnten wir nicht in überprüfbarer Form beschaffen: Die Bayley-Pinneau-Prozentsätze stehen nur
+  im Originalartikel von 1952, die Roche-Wainer-Thissen-Koeffizienten in einer Monographie von 1975.</li>
+<li>Die Verfahren können deutlich auseinanderliegen. Im Beispiel eines 10-jährigen Mädchens mit
+  147,5 cm und Skelettalter 12 Jahre ergibt die Hochrechnung nach Skelettalter 159 cm (Spanne
+  156 bis 164 cm), Khamis-Roche, das das Skelettalter nicht kennt, aber 173 cm. Je stärker
+  Skelettalter und Lebensalter voneinander abweichen, desto größer die Unsicherheit.</li>
+<li>Die Unsicherheit des Skelettalters (im Mittel ±8 Monate) schlägt voll auf die Endgröße durch.</li>
+<li>Während der Pubertät sind Prognosen besonders unsicher. Fachleute empfehlen sie vor einem
+  Skelettalter von etwa 12 Jahren (Jungen) bzw. 10,5 Jahren (Mädchen) (Thodberg et al. 2009).</li>
+<li>Bei einem Skelettalter, das mehr als 2 Jahre vom Lebensalter abweicht, oder bei einer Größe
+  außerhalb der 1. bis 99. Perzentile für das Skelettalter ist die Faustregel unzuverlässig.
+  Die App weist dann darauf hin.</li>
+<li>Gültig ist die Rechnung nur für Alter zwischen 2 Jahren und dem Ende der Referenz (18 bzw. 20
+  Jahre) und für Kinder ohne Erkrankungen, die das Wachstum verändern. Die KiGGS-Kurven enden
+  bei 18 Jahren, einzelne Jungen wachsen danach noch etwas.</li>
+<li>Ungenaue Messungen von Größe und Gewicht gehen direkt in das Ergebnis ein.</li>
+</ul>
+<p>Die Prognose ist keine Grundlage für Behandlungsentscheidungen. Bei Auffälligkeiten
+entscheidet die ärztliche Beurteilung.</p>
+<h2>Die Bausteine im Projekt</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Datei</th>
+<th>Rolle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data/</code></td>
+<td>Die „Karteikarten": Röntgenbilder mit bekanntem Alter (RSNA, muss selbst heruntergeladen werden)</td>
+</tr>
+<tr>
+<td><code>src/dataset.py</code>, <code>src/transforms.py</code></td>
+<td>Lädt und bereitet die Bilder vor</td>
+</tr>
+<tr>
+<td><code>src/model.py</code></td>
+<td>Das neuronale Netz (Bild + Geschlecht → geschätztes Alter)</td>
+</tr>
+<tr>
+<td><code>src/train.py</code></td>
+<td>Training, speichert den besten Stand in <code>checkpoints/</code></td>
+</tr>
+<tr>
+<td><code>src/predict.py</code></td>
+<td>Schätzung für ein einzelnes Bild über die Kommandozeile</td>
+</tr>
+<tr>
+<td><code>src/webapp.py</code>, <code>src/static/</code></td>
+<td>Die App im Browser (Bild hineinziehen, Handy-Kamera, Endgrößen-Prognose)</td>
+</tr>
+<tr>
+<td><code>src/growth.py</code>, <code>data/reference/</code></td>
+<td>Rechnung und Referenzdaten der Endgrößen-Prognose (KiGGS, CDC, Khamis-Roche)</td>
+</tr>
+<tr>
+<td><code>web/</code>, <code>scripts/build_web.py</code>, <code>scripts/export_onnx.py</code></td>
+<td>Offline-App: Modell und Rechnung laufen im Browser, ohne Mac (siehe <code>web/README.md</code>)</td>
+</tr>
+<tr>
+<td><code>scripts/make_desktop_app.py</code></td>
+<td>Erzeugt das Programm-Icon <code>Skelettalter.app</code> für den Schreibtisch</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Wichtiger Hinweis</h2>
+<p>Dieses Projekt dient Lern- und Forschungszwecken. Es ist <strong>kein Diagnosewerkzeug</strong> und wurde
+nicht klinisch validiert. Bei gesundheitlichen Fragen entscheidet die ärztliche Beurteilung.</p></main></body></html>
